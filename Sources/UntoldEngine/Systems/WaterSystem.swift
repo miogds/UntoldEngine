@@ -251,7 +251,7 @@ public final class WaterRenderer: @unchecked Sendable {
         let desc = MTLRenderPipelineDescriptor()
         desc.label = "Water Occlusion Pipeline"
         desc.vertexFunction = vfn
-        desc.fragmentFunction = nil
+        desc.fragmentFunction = library.makeFunction(name: "fragmentWaterOcclusion")
         desc.colorAttachments[0].pixelFormat = colorFormat
         desc.colorAttachments[0].writeMask = []        // depth only
         desc.depthAttachmentPixelFormat = depthFormat
@@ -695,14 +695,18 @@ public final class WaterRenderer: @unchecked Sendable {
                 encoder.setRenderPipelineState(occ.pipelineState!)
                 encoder.setDepthStencilState(occ.depthState)
                 encoder.setCullMode(.none)
+                var invModel = simd_inverse(modelMatrix)   // world → pool-local, for the footprint hole
+                encoder.setFragmentBytes(&invModel, length: MemoryLayout<simd_float4x4>.stride, index: 0)
                 for m in meshes {
                     var mvp = simd_mul(viewProj, m.transform)
+                    var meshToWorld = m.transform
                     var stride = UInt32(m.vertexStride)
                     var offset = UInt32(m.vertexOffset)
                     encoder.setVertexBuffer(m.vertexBuffer, offset: 0, index: 0)
                     encoder.setVertexBytes(&stride, length: MemoryLayout<UInt32>.stride, index: 1)
                     encoder.setVertexBytes(&offset, length: MemoryLayout<UInt32>.stride, index: 2)
                     encoder.setVertexBytes(&mvp, length: MemoryLayout<simd_float4x4>.stride, index: 3)
+                    encoder.setVertexBytes(&meshToWorld, length: MemoryLayout<simd_float4x4>.stride, index: 4)
                     encoder.drawIndexedPrimitives(type: .triangle, indexCount: m.indexCount,
                                                   indexType: m.indexType, indexBuffer: m.indexBuffer,
                                                   indexBufferOffset: m.indexOffset)

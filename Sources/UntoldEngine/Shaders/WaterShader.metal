@@ -366,17 +366,36 @@ fragment float4 fragmentWaterCaustics(CausticsInOut in [[stage_in]],
 // from ARKit's GeometrySource (arbitrary stride/offset), so address them manually.
 // ===========================================================================
 
-struct OcclusionOut { float4 position [[position]]; };
+struct OcclusionOut {
+    float4 position [[position]];
+    float3 world;
+};
 
 vertex OcclusionOut vertexWaterOcclusion(uint vid [[vertex_id]],
                                          device const uchar *vertexBytes [[buffer(0)]],
                                          constant uint &stride [[buffer(1)]],
                                          constant uint &offset [[buffer(2)]],
-                                         constant float4x4 &mvp [[buffer(3)]]) {
+                                         constant float4x4 &mvp [[buffer(3)]],
+                                         constant float4x4 &meshToWorld [[buffer(4)]]) {
     device const float *p = (device const float *)(vertexBytes + offset + vid * stride);
+    float4 local = float4(p[0], p[1], p[2], 1.0);
     OcclusionOut out;
-    out.position = mvp * float4(p[0], p[1], p[2], 1.0);
+    out.position = mvp * local;
+    out.world = (meshToWorld * local).xyz;
     return out;
+}
+
+// Depth-only occluder with a hole over the pool: a real surface fragment writes depth
+// (occludes the water) UNLESS it lies over the pool's footprint at/below floor level —
+// there it is discarded so you can see down into the sunk-in pool. `invPoolModel` maps
+// world → pool-local [-1,1]³ (water surface at y=0, rim at y=2/12).
+fragment void fragmentWaterOcclusion(OcclusionOut in [[stage_in]],
+                                     constant float4x4 &invPoolModel [[buffer(0)]]) {
+    float3 l = (invPoolModel * float4(in.world, 1.0)).xyz;
+    if (abs(l.x) < 1.0 && abs(l.z) < 1.0 && l.y < (2.0 / 12.0) + 0.3) {
+        discard_fragment();
+    }
+    // otherwise: no color (write mask is empty), depth is written → occludes.
 }
 
 // ===========================================================================
