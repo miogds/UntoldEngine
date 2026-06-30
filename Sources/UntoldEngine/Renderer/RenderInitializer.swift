@@ -131,6 +131,8 @@ func effectiveOpaqueSampleCount() -> Int {
 
 func updateOpaquePipelinesForSampleCount() {
     guard renderInfo.device != nil, renderInfo.library != nil else { return }
+    // Water-only mode never builds the deferred model/light pipelines.
+    if WaterRenderer.shared.waterOnlyMode { return }
 
     if let modelPipeline = InitModelPipeline() {
         PipelineManager.shared.update(rendererPipeLine: modelPipeline, forType: .model)

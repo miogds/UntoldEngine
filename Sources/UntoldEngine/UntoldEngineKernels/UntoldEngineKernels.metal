@@ -59,3 +59,5 @@ using namespace metal;
 
 #include "../Shaders/LookShader.metal"
 #include "../Shaders/OutputTransformShader.metal"
+
+#include "../Shaders/WaterShader.metal"

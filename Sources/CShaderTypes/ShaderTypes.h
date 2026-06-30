@@ -572,5 +572,42 @@ typedef enum {
 #define GEOMETRY_MASK_SPHERE   2
 #define GEOMETRY_MASK_LIGHT    4
 
+// ---------------------------------------------------------------------------
+// Water demo (WebGL-water port)
+// ---------------------------------------------------------------------------
+
+// Uniforms shared by the water scene shaders (pool, surface, sphere) and the
+// caustics pass. `mvp` and `eye` are unused by the caustics pass.
+typedef struct {
+    matrix_float4x4 mvp;          // projection * view (model is identity)
+    simd_float3 eye;              // camera world position
+    simd_float3 light;            // normalized light direction
+    simd_float3 sphereCenter;     // sphere world center
+    float sphereRadius;
+} WaterSceneUniforms;
+
+// Vertex/uniform buffer binding slots for the water scene + caustics shaders.
+typedef enum{
+    waterScenePassPositionIndex = 0,
+    waterScenePassUniformIndex  = 1,
+}WaterScenePassBufferIndices;
+
+// Fragment texture binding slots for the water scene shaders.
+typedef enum{
+    waterScenePassWaterTextureIndex    = 0,  // sim state (RGBA float): height, vel, normal.xz
+    waterScenePassTilesTextureIndex    = 1,  // pool tile albedo
+    waterScenePassCausticsTextureIndex = 2,  // caustic light map (R=brightness, G=shadow)
+    waterScenePassSkyTextureIndex      = 3,  // sky cubemap
+}WaterScenePassTextureIndices;
+
+// Buffer binding slots for the water simulation compute kernels.
+typedef enum{
+    waterSimPassDropCenterIndex   = 0,  // float2, drop center in [-1,1]
+    waterSimPassDropRadiusIndex   = 1,  // float
+    waterSimPassDropStrengthIndex = 2,  // float
+    waterSimPassOldCenterIndex    = 3,  // float3, sphere old center
+    waterSimPassNewCenterIndex    = 4,  // float3, sphere new center
+    waterSimPassSphereRadiusIndex = 5,  // float
+}WaterSimPassBufferIndices;
 
 #endif /* ShaderTypes_h */

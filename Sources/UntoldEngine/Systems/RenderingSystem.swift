@@ -237,6 +237,11 @@ func addSceneBackgroundPass(
 }
 
 public func buildGameModeGraph() -> RenderGraphResult {
+    // Water demo takes over the whole frame, bypassing the deferred PBR pipeline.
+    if WaterRenderer.shared.isEnabled {
+        return WaterRenderer.shared.buildGraph()
+    }
+
     updateGBufferStorageForCurrentDebugMode()
     updateOpaqueSampleCountForCurrentState()
 

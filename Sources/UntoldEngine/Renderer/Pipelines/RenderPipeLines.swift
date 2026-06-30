@@ -908,7 +908,24 @@ public func InitSpatialDebugPipeline() -> RenderPipeline? {
 }
 
 public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)] {
-    [
+    // In water-only mode the deferred G-buffer/light pipelines (44 bytes of tile
+    // memory) are never used and would exceed the iOS simulator's 32-byte limit,
+    // so skip creating them.
+    if WaterRenderer.shared.waterOnlyMode {
+        // InitModelPipeline normally populates the global model vertex descriptor as
+        // a side effect; it's needed by procedural meshes (e.g. the default light's
+        // cube) even though the deferred model pipeline itself is skipped here.
+        _ = createModelVertexDescriptor()
+        return [
+            (.grid, InitGridPipeline),
+            (.environment, InitEnvironmentPipeline),
+            (.composite, InitCompositePipeline),
+            (.preComposite, InitPreCompositePipeline),
+            (.look, InitLookPipeline),
+            (.outputTransform, InitOutputTransformPipeline),
+        ]
+    }
+    return [
         (.grid, InitGridPipeline),
         (.shadow, InitShadowPipeline),
         (.model, InitModelPipeline),
